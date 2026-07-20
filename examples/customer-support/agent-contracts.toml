@@ -1,0 +1,80 @@
+version = 1
+
+[project]
+root = "."
+
+[[checks]]
+id = "agent-frontmatter"
+type = "frontmatter"
+files = [".github/agents/*.agent.md"]
+required = ["description"]
+allowed = [
+  "name",
+  "description",
+  "argument-hint",
+  "tools",
+  "model",
+  "agents",
+  "user-invocable",
+  "disable-model-invocation",
+  "handoffs",
+  "hooks",
+  "target",
+  "mcp-servers",
+]
+
+[[checks]]
+id = "prompt-frontmatter"
+type = "frontmatter"
+files = [".github/prompts/*.prompt.md"]
+required = ["description"]
+allowed = ["name", "description", "argument-hint", "agent", "model", "tools"]
+
+[[checks]]
+id = "agent-structure"
+type = "sections"
+files = [".github/agents/*.agent.md"]
+required = ["Routing", "Mode precedence", "Constraints", "Approach", "Output Format"]
+
+[[checks]]
+id = "safety-language"
+type = "contains"
+files = [".github/agents/*.agent.md"]
+under_section = "Constraints"
+required = [
+  "Never promise a refund before confirming eligibility.",
+  "State which policy or source supports the answer.",
+]
+
+[[checks]]
+id = "unsafe-examples"
+type = "forbid"
+files = [".github/prompts/*.prompt.md"]
+under_section = "Examples"
+fence_language = "json"
+patterns = ['"approved"\s*:\s*true']
+message = "examples must not pre-approve a refund"
+
+[[checks]]
+id = "domain-routing"
+type = "routing"
+file = ".github/agents/customer-support.agent.md"
+section = "Routing"
+route_column = "Route"
+keywords_column = "Keywords"
+cases = "contracts/routing.jsonl"
+
+[[checks]]
+id = "mode-precedence"
+type = "precedence"
+file = ".github/agents/customer-support.agent.md"
+section = "Mode precedence"
+order = ["Refund", "Troubleshoot", "General"]
+exact = true
+cases = "contracts/modes.jsonl"
+fallback = "General"
+modes = [
+  { name = "Refund", patterns = ['\brefund\b', 'money\s+back'] },
+  { name = "Troubleshoot", patterns = ['\b(error|broken|crash(?:es|ed)?)\b'] },
+  { name = "General", patterns = ['(?s).*'] },
+]

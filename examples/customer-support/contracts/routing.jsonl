@@ -1,0 +1,5 @@
+{"id":"billing-refund","input":"Can I get a refund for yesterday's order?","expected":"Billing"}
+{"id":"billing-invoice","input":"Where can I download my invoice?","expected":"Billing"}
+{"id":"technical-crash","input":"The desktop app crashes during install","expected":"Technical"}
+{"id":"account-password","input":"I forgot my password and I am locked out","expected":"Account"}
+{"id":"specific-keyword-wins","input":"The app has an error and I want my money back","expected":"Billing","forbidden":["Technical"]}

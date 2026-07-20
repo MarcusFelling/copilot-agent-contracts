@@ -1,0 +1,3 @@
+{"id":"refund-over-troubleshoot","input":"The app is broken and I want a refund","expected":"Refund"}
+{"id":"troubleshoot-crash","input":"The app crashes after launch","expected":"Troubleshoot"}
+{"id":"general-capabilities","input":"What kinds of questions can you answer?","expected":"General"}
