@@ -1,14 +1,25 @@
 # Copilot Agent Contracts
 
-Static contract tests for GitHub Copilot custom agents and prompt files.
+Golden-case contract tests for GitHub Copilot custom agents.
 
-Agent instructions are executable specifications, but ordinary linters cannot tell you whether a routing table still covers its golden cases, a safety sentence disappeared, or a documented precedence order changed. Copilot Agent Contracts checks those properties from a versioned TOML file. It runs locally with no model call, token, credential, or service connection.
+When a Copilot custom agent routes work across sub-agents or picks a mode by precedence, the routing table and the precedence list *are* the behavior. Copilot Agent Contracts lets you pin that behavior with golden cases: you write example inputs and the route or mode each one should resolve to, and the tool asserts the documented table and order still produce those answers. Every check is deterministic, versioned in a TOML file, and runs locally with no model call, token, credential, or service connection.
+
+The routing and precedence checks are the reason this exists. Four structural guards (`frontmatter`, `sections`, `contains`, `forbid`) come along so one config can also hold the file to a shape, but those overlap with general instruction linters. If you want broad file-quality linting (broken paths, drift, secrets, token budgets), reach for a dedicated linter such as [agnix](https://github.com/agent-sh/agnix) or [agentlint](https://github.com/Mr-afroverse/agentlint). This tool is the piece they leave out: gating CI on golden routing and precedence cases.
+
+## How this differs from a linter
+
+A linter inspects the file for its own quality. A contract test asserts an outcome you chose in advance.
+
+- A linter can warn that two routes have overlapping keywords. It cannot tell you that `"the app crashed and I want a refund"` must resolve to `Billing`, not `Technical`.
+- A linter can flag a precedence list that looks suspicious. It cannot tell you that a broken-and-refund message must resolve to `Refund` because `Refund` outranks `Troubleshoot`.
+
+You supply those answers as golden cases. When someone edits the table or reorders the list, the failing case names the exact input, the route it took, and the route it should have taken.
 
 ## Scope
 
 The package reads Markdown, YAML frontmatter keys, Markdown tables, fenced blocks, and JSONL cases. It reports deterministic findings with file and line locations where available.
 
-It does **not** invoke GitHub Copilot, test model responses, connect to an MCP server, execute tools, or prove that an agent behaves as written. Use runtime evaluations for those questions. These checks cover the static contract stored in your repository.
+It does **not** invoke GitHub Copilot, test model responses, connect to an MCP server, execute tools, or prove that an agent behaves as written at runtime. The routing and precedence scorers evaluate the documented table and order, not Copilot's own selection logic. Use runtime evaluations for questions about model behavior. These checks cover the static contract stored in your repository.
 
 ## Install from a checkout
 
@@ -72,6 +83,63 @@ required = ["Constraints", "Approach", "Output Format"]
 
 Each check needs a unique `id`, a supported `type`, and either `file` or `files`. Paths and glob patterns resolve from the project root. A pattern that matches no files fails unless the check sets `allow_empty = true`.
 
+## Golden-case contract tests
+
+These two checks are the core of the tool. Each reads a documented structure from the agent file and runs your JSONL golden cases against it.
+
+### `routing`
+
+Reads routes and keywords from a Markdown table, then evaluates JSONL golden cases with a deterministic keyword scorer. Longer matching phrases receive more weight, so a specific phrase can outrank a shorter keyword in another route. This scorer tests the written table and your cases; it does not simulate Copilot routing.
+
+```toml
+[[checks]]
+id = "domain-routing"
+type = "routing"
+file = ".github/agents/customer-support.agent.md"
+section = "Routing"
+route_column = "Route"
+keywords_column = "Keywords"
+cases = "contracts/routing.jsonl"
+keyword_separator = "[,/]"
+```
+
+Each non-comment JSONL line needs `input` and `expected`. Optional fields are `id`, `acceptable`, `forbidden`, and `allow_ties`.
+
+```json
+{"id":"refund","input":"Can I get my money back?","expected":"Billing","forbidden":["Technical"]}
+```
+
+When a case fails, the finding names the input, the winning route or routes, the expected route, and the top keyword scores, so you can see why the table disagreed with your golden answer.
+
+### `precedence`
+
+Checks a numbered Markdown list against a configured order. By default, the list may contain other labels. Set `exact = true` to require an exact match.
+
+Optional golden cases apply configured regular expressions in the documented order. The first matching mode wins, so overlapping triggers resolve to the higher-precedence mode. A message that both reports a failure and asks for a refund resolves to `Refund` when `Refund` precedes `Troubleshoot`.
+
+```toml
+[[checks]]
+id = "mode-precedence"
+type = "precedence"
+file = ".github/agents/customer-support.agent.md"
+section = "Mode precedence"
+order = ["Refund", "Troubleshoot", "General"]
+exact = true
+cases = "contracts/modes.jsonl"
+fallback = "General"
+modes = [
+  { name = "Refund", patterns = ["\\brefund\\b", "money\\s+back"] },
+  { name = "Troubleshoot", patterns = ["\\b(error|broken)\\b"] },
+  { name = "General", patterns = ["(?s).*"] },
+]
+```
+
+The default list parser reads labels wrapped in bold Markdown, such as `1. **Refund**`. Set `label_pattern` to change the capture expression.
+
+## Supporting structural checks
+
+These four checks hold the agent and prompt files to a shape. They overlap with general instruction linters, so use them when you want one config to cover structure alongside your golden cases; use a dedicated linter when you need broad file-quality coverage.
+
 ### `frontmatter`
 
 Checks top-level YAML frontmatter keys without interpreting YAML values.
@@ -117,53 +185,6 @@ Reports every match for one or more regular expressions.
 | `fence_language` | Scan only matching triple-backtick blocks, such as `json` |
 | `case_sensitive` | Control matching, defaults to `true` |
 | `message` | Replace the default finding message |
-
-### `routing`
-
-Reads routes and keywords from a Markdown table, then evaluates JSONL golden cases with a deterministic keyword scorer. Longer matching phrases receive more weight. This scorer tests the written table and cases; it does not simulate Copilot routing.
-
-```toml
-[[checks]]
-id = "domain-routing"
-type = "routing"
-file = ".github/agents/customer-support.agent.md"
-section = "Routing"
-route_column = "Route"
-keywords_column = "Keywords"
-cases = "contracts/routing.jsonl"
-keyword_separator = "[,/]"
-```
-
-Each non-comment JSONL line needs `input` and `expected`. Optional fields are `id`, `acceptable`, `forbidden`, and `allow_ties`.
-
-```json
-{"id":"refund","input":"Can I get my money back?","expected":"Billing","forbidden":["Technical"]}
-```
-
-### `precedence`
-
-Checks a numbered Markdown list against a configured order. By default, the list may contain other labels. Set `exact = true` to require an exact match.
-
-Optional golden cases apply configured regular expressions in the documented order. The first matching mode wins.
-
-```toml
-[[checks]]
-id = "mode-precedence"
-type = "precedence"
-file = ".github/agents/customer-support.agent.md"
-section = "Mode precedence"
-order = ["Refund", "Troubleshoot", "General"]
-exact = true
-cases = "contracts/modes.jsonl"
-fallback = "General"
-modes = [
-  { name = "Refund", patterns = ["\\brefund\\b", "money\\s+back"] },
-  { name = "Troubleshoot", patterns = ["\\b(error|broken)\\b"] },
-  { name = "General", patterns = ["(?s).*"] },
-]
-```
-
-The default list parser reads labels wrapped in bold Markdown, such as `1. **Refund**`. Set `label_pattern` to change the capture expression.
 
 ## Output formats
 

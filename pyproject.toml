@@ -5,13 +5,13 @@ build-backend = "hatchling.build"
 [project]
 name = "copilot-agent-contracts"
 version = "0.1.0"
-description = "Static contract tests for GitHub Copilot custom agents and prompt files"
+description = "Golden-case routing and precedence contract tests for GitHub Copilot custom agents"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
   { name = "Marcus Felling" },
 ]
-keywords = ["github-copilot", "custom-agents", "prompt-engineering", "testing", "evals"]
+keywords = ["github-copilot", "custom-agents", "agent-routing", "golden-tests", "prompt-engineering", "testing", "evals"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Environment :: Console",

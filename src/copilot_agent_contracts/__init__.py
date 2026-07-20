@@ -1,4 +1,4 @@
-"""Static contract tests for GitHub Copilot agent customizations."""
+"""Golden-case routing and precedence contract tests for GitHub Copilot custom agents."""
 
 from copilot_agent_contracts.engine import run_contracts
 from copilot_agent_contracts.model import CheckResult, Finding, Report

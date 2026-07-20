@@ -50,7 +50,9 @@ required = ["Constraints", "Approach", "Output Format"]
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="copilot-agent-contracts",
-        description="Static contract tests for GitHub Copilot custom agents and prompt files.",
+        description=(
+            "Golden-case routing and precedence contract tests for GitHub Copilot custom agents."
+        ),
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     subcommands = parser.add_subparsers(dest="command", required=True)
