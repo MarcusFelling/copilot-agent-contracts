@@ -2,16 +2,16 @@
 
 Golden-case contract tests for GitHub Copilot custom agents.
 
-When a Copilot custom agent routes work across sub-agents or picks a mode by precedence, the routing table and the precedence list *are* the behavior. Copilot Agent Contracts lets you pin that behavior with golden cases: you write example inputs and the route or mode each one should resolve to, and the tool asserts the documented table and order still produce those answers. Every check is deterministic, versioned in a TOML file, and runs locally with no model call, token, credential, or service connection.
+When a Copilot custom agent routes work across sub-agents or picks a mode by precedence, the routing table and the precedence list define the behavior. Copilot Agent Contracts lets you pin that behavior with golden cases: you write example inputs and the route or mode each one should resolve to, and the tool asserts the documented table and order still produce those answers. Every check is deterministic, versioned in a TOML file, and runs locally with no model call, token, credential, or service connection.
 
-The routing and precedence checks are the reason this exists. Four structural guards (`frontmatter`, `sections`, `contains`, `forbid`) come along so one config can also hold the file to a shape, but those overlap with general instruction linters. If you want broad file-quality linting (broken paths, drift, secrets, token budgets), reach for a dedicated linter such as [agnix](https://github.com/agent-sh/agnix) or [agentlint](https://github.com/Mr-afroverse/agentlint). This tool is the piece they leave out: gating CI on golden routing and precedence cases.
+The routing and precedence checks are the reason this exists. Four structural guards (`frontmatter`, `sections`, `contains`, `forbid`) come along so one config can also hold the file to a shape, but those overlap with general instruction linters. If you want broad file-quality linting (broken paths, drift, secrets, token budgets), reach for a dedicated linter such as [agnix](https://github.com/agent-sh/agnix) or [agentlint](https://github.com/Mr-afroverse/agentlint). Those linters skip golden routing and precedence cases, so this tool covers that gap and gates CI on them.
 
 ## How this differs from a linter
 
 A linter inspects the file for its own quality. A contract test asserts an outcome you chose in advance.
 
 - A linter can warn that two routes have overlapping keywords. It cannot tell you that `"the app crashed and I want a refund"` must resolve to `Billing`, not `Technical`.
-- A linter can flag a precedence list that looks suspicious. It cannot tell you that a broken-and-refund message must resolve to `Refund` because `Refund` outranks `Troubleshoot`.
+- A linter can flag a precedence list that reorders its modes. It cannot tell you that a broken-and-refund message must resolve to `Refund` because `Refund` outranks `Troubleshoot`.
 
 You supply those answers as golden cases. When someone edits the table or reorders the list, the failing case names the exact input, the route it took, and the route it should have taken.
 
@@ -109,7 +109,7 @@ Each non-comment JSONL line needs `input` and `expected`. Optional fields are `i
 {"id":"refund","input":"Can I get my money back?","expected":"Billing","forbidden":["Technical"]}
 ```
 
-When a case fails, the finding names the input, the winning route or routes, the expected route, and the top keyword scores, so you can see why the table disagreed with your golden answer.
+When a case fails, the finding names the input, the winning route or routes, the expected route, and the top keyword scores, so you can see why the table produced a different route than your golden answer.
 
 ### `precedence`
 

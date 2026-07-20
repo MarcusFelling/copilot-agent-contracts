@@ -1,6 +1,6 @@
 # Customer-support example
 
-This fictional project demonstrates every check type without calling a model or connecting to a service. The routing and precedence checks are the point; the frontmatter, sections, contains, and forbid checks hold the file to a shape around them.
+This fictional project demonstrates every check type without calling a model or connecting to a service. The routing and precedence checks carry the example; the frontmatter, sections, contains, and forbid checks hold the file to a shape around them.
 
 From the repository root:
 
